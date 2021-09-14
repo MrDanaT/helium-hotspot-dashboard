@@ -34,10 +34,8 @@ const columns = [
   {
     title: "Name",
     dataIndex: "hotspotInfo.name",
-    reward_scale: "uit_scoped",
     scopedSlots: {
       customRender: "name",
-      reward_scale: "scoped",
     },
     ellipsis: true,
   },
@@ -78,13 +76,19 @@ const columns = [
 ];
 export default {
   name: "HotspotTable",
+  props: {
+    hotspotAddresses: {
+      type: Array,
+      required: true,
+    },
+  },
   data() {
     return {
       startDateMining: new Date(2021, 7, 13),
-      hotspotAddresses: [],
       columns,
       loading: false,
       hotspots: [],
+      hotspotAPIUrl: 'https://api.helium.io/v1/hotspots'
     };
   },
   created() {
@@ -95,7 +99,7 @@ export default {
       this.loading = true;
       this.hotspotAddresses.forEach((hotspotAddress) => {
         Vue.axios
-          .get(`https://api.helium.io/v1/hotspots/${hotspotAddress}`)
+          .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
           .then(({ data }) => {
             data = data.data;
             this.hotspots.push({
@@ -163,7 +167,7 @@ export default {
     async rewardCall(address, startDay, endDay) {
       try {
         let res = await Vue.axios({
-          url: `https://api.helium.io/v1/hotspots/${address}/rewards/sum?min_time=${startDay.toISOString()}&max_time=${endDay.toISOString()}`,
+          url: `${this.hotspotAPIUrl}/${address}/rewards/sum?min_time=${startDay.toISOString()}&max_time=${endDay.toISOString()}`,
           method: "get",
           timeout: 8000,
           headers: {
@@ -232,10 +236,3 @@ export default {
   },
 };
 </script>
-
-<style>
-th.column-money,
-td.column-money {
-  text-align: right !important;
-}
-</style>

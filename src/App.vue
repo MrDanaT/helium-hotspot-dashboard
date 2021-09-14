@@ -1,16 +1,25 @@
 <template>
   <div id="app">
-    <HotspotTable />
+    <HotspotTable :hotspotAddresses="hotspotAddresses" />
+    <HotspotDaily :hotspotAddresses="hotspotAddresses" />
   </div>
 </template>
 
 <script>
 import HotspotTable from "./components/HotspotTable.vue";
+import HotspotDaily from "./components/HotspotDaily.vue";
 
 export default {
   name: "App",
   components: {
     HotspotTable,
+    HotspotDaily,
+  },
+  data() {
+    return {
+      hotspotAddresses: [
+      ],
+    };
   },
 };
 </script>
