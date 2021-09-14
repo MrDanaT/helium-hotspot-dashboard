@@ -1,11 +1,12 @@
 <template>
   <div class="hello">
+    <a-button @click="loadTable">Load Table</a-button>
     <a-table
       :columns="hotspots"
       :data-source="data"
       :loading="loading"
       :pagination="false"
-      :row-key="(hs) => hs.hotspotInfo.address"
+      :row-key="(hs) => hs.date.toString()"
       bordered
     >
       <template slot="title"> Daily overview </template>
@@ -24,13 +25,19 @@ export default {
       type: Array,
       required: true,
     },
+    startDateMining: {
+      type: Date,
+      required: true,
+    },
   },
   data() {
     return {
-      hotspots: [{
-          title: 'Date',
-          dataIndex: 'date'
-      }],
+      hotspots: [
+        {
+          title: "Date",
+          dataIndex: "date",
+        },
+      ],
       loading: false,
       hotspotAPIUrl: "https://api.helium.io/v1/hotspots",
       data: [],
@@ -53,12 +60,6 @@ export default {
               address: hotspotAddress,
             });
             return data.name;
-          })
-          .then(() => {
-            this.hotspots = this.hotspots.sort((a, b) => {
-              let nameA = a.hotspotInfo.name;
-              return nameA.localeCompare(b.hotspotInfo.name, "en");
-            });
           });
       });
 
@@ -82,16 +83,41 @@ export default {
         console.error(err);
       }
     },
-    async getReward(address, startDay, endDay) {
-      let result = await this.rewardCall(address, startDay, endDay);
+    getReward(address, startDay, endDay) {
+      let result = this.rewardCall(address, startDay, endDay);
       return result;
     },
-    findAddress(name) {
-      const found = this.hotspots.find((hs) => {
-        return hs.hotspotInfo.name === name;
-      });
+    async loadTable() {
+      this.data = []
+      let startDay = new Date(this.startDateMining);
+      let endDay = new Date();
+      while (startDay <= endDay) {
+        const startDayEndOfDay = new Date(
+          startDay.getFullYear(),
+          startDay.getMonth(),
+          startDay.getDate(),
+          23,
+          59,
+          59
+        );
+        let result = {};
+        result.date = new Date(startDay).toDateString();
 
-      return found ? found.hotspotInfo.address : "";
+        this.hotspots.forEach((hs) => {
+          if (!hs.address) return;
+          result[hs.dataIndex] = 0;
+        });
+
+        this.hotspots.forEach((hs) => {
+          if (!hs.address) return;
+          this.getReward(hs.address, startDay, startDayEndOfDay).then((val) => {
+            result[hs.dataIndex] = val.data.total;
+          });
+        });
+
+        startDay.setDate(startDay.getDate() + 1);
+        this.data.push(result);
+      }
     },
   },
 };

@@ -1,7 +1,7 @@
 <template>
   <div id="app">
-    <HotspotTable :hotspotAddresses="hotspotAddresses" />
-    <HotspotDaily :hotspotAddresses="hotspotAddresses" />
+    <HotspotTable :startDateMining="startDateMining" :hotspotAddresses="hotspotAddresses" />
+    <HotspotDaily :startDateMining="startDateMining" :hotspotAddresses="hotspotAddresses" />
   </div>
 </template>
 
@@ -19,6 +19,7 @@ export default {
     return {
       hotspotAddresses: [
       ],
+      startDateMining: new Date(2021, 7, 13),
     };
   },
 };

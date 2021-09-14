@@ -81,14 +81,17 @@ export default {
       type: Array,
       required: true,
     },
+    startDateMining: {
+      type: Date,
+      required: true,
+    },
   },
   data() {
     return {
-      startDateMining: new Date(2021, 7, 13),
       columns,
       loading: false,
       hotspots: [],
-      hotspotAPIUrl: 'https://api.helium.io/v1/hotspots'
+      hotspotAPIUrl: "https://api.helium.io/v1/hotspots",
     };
   },
   created() {
@@ -167,7 +170,9 @@ export default {
     async rewardCall(address, startDay, endDay) {
       try {
         let res = await Vue.axios({
-          url: `${this.hotspotAPIUrl}/${address}/rewards/sum?min_time=${startDay.toISOString()}&max_time=${endDay.toISOString()}`,
+          url: `${
+            this.hotspotAPIUrl
+          }/${address}/rewards/sum?min_time=${startDay.toISOString()}&max_time=${endDay.toISOString()}`,
           method: "get",
           timeout: 8000,
           headers: {
