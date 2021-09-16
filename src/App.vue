@@ -1,25 +1,36 @@
 <template>
   <div id="app">
-    {{ hotspotNames }}
-    <a-row type="flex">
+    <a-row type="flex" justify="space-around">
       <a-col :span="4">
-        <a-card>
-          <a-date-picker />
+        <a-card style="background-color: #AAAAAA" title="User Input">
+          <a-card title="Start Date" type="inner">
+            <a-date-picker v-model="startDateMining" />
+          </a-card>
+          <a-card title="Add/Remove hotspots" type="inner"
+            ><input
+              placeholder="Enter hotspot address"
+              type="text"
+              v-model="text"
+              style="margin-right: 0.8em"
+            />
+            <a-button type="primary" @click="addToHotspots" shape="round"
+              >ADD</a-button
+            >
+            <a-button
+              :disabled="hotspotAddresses.length === 0"
+              shape="round"
+              type="danger"
+              @click="removeFromHotspots"
+              >REMOVE</a-button
+            ></a-card
+          >
         </a-card>
       </a-col>
-      <a-col :span="20"
-        ><div style="margin-bottom: 1em">
-          <input
-            placeholder="Enter hotspot address"
-            type="text"
-            v-model="text"
-          />
-          <button @click="addToHotspots">ADD</button>
-          <button @click="removeFromHotspots">REMOVE</button>
-        </div>
+      <a-col :span="18"
+        ><div style="margin-bottom: 1em"></div>
         <HotspotTable
           style="margin-bottom: 1em"
-          :startDateMining="startDateMining"
+          :startDateMining="new Date(startDateMining)"
           :hotspotAddresses="hotspotAddresses"
           @emitHotspots="processHotspots" />
         <a-collapse>
@@ -36,6 +47,7 @@
 <script>
 import HotspotTable from "./components/HotspotTable.vue";
 import HotspotDaily from "./components/HotspotDaily.vue";
+import moment from "moment";
 
 export default {
   name: "App",
@@ -45,8 +57,9 @@ export default {
   },
   data() {
     return {
-      hotspotAddresses: [],
-      startDateMining: new Date(2021, 7, 13),
+      hotspotAddresses: [
+      ],
+      startDateMining: moment(new Date(2021, 7, 13)),
       text: "",
       hotspotNames: [],
     };
@@ -58,7 +71,6 @@ export default {
     },
     removeFromHotspots() {
       const idx = this.hotspotNames.findIndex((hs) => hs === this.text);
-      console.log(idx);
       if (idx < 0) return;
 
       this.hotspotAddresses.splice(idx, 1);

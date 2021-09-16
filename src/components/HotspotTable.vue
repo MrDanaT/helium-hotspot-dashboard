@@ -71,7 +71,7 @@ const columns = [
     ellipsis: true,
   },
   {
-    title: "Total Rewards (HNT)",
+    title: "Total Rewards (HNT) *since input date",
     dataIndex: "rewardInfo.total_earned",
     ellipsis: true,
   },
