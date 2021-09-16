@@ -8,7 +8,7 @@
       bordered
     >
       <template slot="title">
-        <a-button @click="loadTable">Daily overview</a-button>
+        <a-button @click="refreshTable">Daily overview</a-button>
       </template>
       <template slot="footer"> © Dana Inc. </template>
     </a-table>
@@ -43,13 +43,10 @@ export default {
       data: [],
     };
   },
-  created() {
-    this.getHotspotInfoFromApi();
-  },
   methods: {
-    async getHotspotInfoFromApi() {
+    async getHotspotInfoFromApi(hotspots) {
       this.loading = true;
-      this.hotspotAddresses.forEach((hotspotAddress) => {
+      hotspots.forEach((hotspotAddress) => {
         Vue.axios
           .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
           .then(({ data }) => {
@@ -63,6 +60,10 @@ export default {
           });
       });
       this.loading = false;
+    },
+    async loadMissingHotspots() {
+      let missing = this.getMissingHotspots();
+      this.getHotspotInfoFromApi(missing);
     },
     async rewardCall(address, startDay, endDay) {
       try {
@@ -82,9 +83,8 @@ export default {
         console.error(err);
       }
     },
-    getReward(address, startDay, endDay) {
-      let result = this.rewardCall(address, startDay, endDay);
-      return result;
+    refreshTable() {
+      this.loadTable(this.hotspotAddresses);
     },
     async loadTable() {
       this.data = [];
@@ -109,14 +109,36 @@ export default {
 
         this.hotspots.forEach((hs) => {
           if (!hs.address) return;
-          this.getReward(hs.address, startDay, startDayEndOfDay).then((val) => {
-            result[hs.dataIndex] = (val.data.total + "").replace(".", ",");
-          });
+          this.rewardCall(hs.address, startDay, startDayEndOfDay).then(
+            (val) => {
+              result[hs.dataIndex] = (val.data.total + "").replace(".", ",");
+            }
+          );
         });
 
         startDay.setDate(startDay.getDate() + 1);
         this.data.push(result);
       }
+    },
+    getMissingHotspots() {
+      const intersection = this.hotspotAddresses.filter((o1) =>
+        this.hotspots.some((o2) => o1 === o2.address)
+      );
+      const diff = this.hotspotAddresses.filter(
+        (x) => !intersection.includes(x)
+      );
+
+      return diff;
+    },
+    removeDeletedHotspots() {
+      const missing = this.getMissingHotspots().filter((x) => x !== "");
+      this.hotspots = this.hotspots.filter((x) => missing.includes(x.address));
+    },
+  },
+  watch: {
+    hotspotAddresses: function () {
+      this.removeDeletedHotspots();
+      this.loadMissingHotspots();
     },
   },
 };

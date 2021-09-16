@@ -1,5 +1,32 @@
 <template>
   <div class="hello">
+    <a-card style="background-color: #cccccc" title="Statistics">
+      <a-row type="flex" justify="space-around">
+        <a-col>
+          <a-card type="inner" title="Grand total:">
+            {{ grandTotal }}
+          </a-card></a-col
+        >
+        <a-col>
+          <a-card type="inner" title="Grand average/hotspot:">
+            {{ grandAverageHotspot }}/hotspot
+          </a-card></a-col
+        >
+        <a-col>
+          <a-card type="inner" title="Grand average/day:">
+            {{ grandAveragePerDay }}/day
+          </a-card></a-col
+        ><a-col>
+          <a-card type="inner" title="Grand total yesterday:">
+            {{ grandTotalLastDay }}/day
+          </a-card></a-col
+        ><a-col>
+          <a-card type="inner" title="Grand total today:">
+            {{ grandTotalToday }}/day
+          </a-card></a-col
+        >
+      </a-row>
+    </a-card>
     <a-table
       :columns="columns"
       :data-source="hotspots"
@@ -62,17 +89,17 @@ const columns = [
   },
   {
     title: "Last Day Earned (HNT)",
-    dataIndex: "rewardInfo.last_day_earned",
+    dataIndex: "rewardInfo.lastDayEarned",
     ellipsis: true,
   },
   {
     title: "Today's Rewards (HNT)",
-    dataIndex: "rewardInfo.today_earned",
+    dataIndex: "rewardInfo.todayEarned",
     ellipsis: true,
   },
   {
     title: "Total Rewards (HNT) *since input date",
-    dataIndex: "rewardInfo.total_earned",
+    dataIndex: "rewardInfo.totalEarned",
     ellipsis: true,
   },
 ];
@@ -88,6 +115,37 @@ export default {
       required: true,
     },
   },
+  computed: {
+    grandTotal() {
+      let result = 0.0;
+      this.hotspots.forEach((a) => {
+        result += a.rewardInfo.totalEarned;
+      });
+      return result.toFixed(3);
+    },
+    grandAverageHotspot() {
+      return (this.grandTotal / this.hotspots.length).toFixed(3);
+    },
+    grandAveragePerDay() {
+      const diffInTime = new Date() - this.startDateMining;
+      const diffInDays = diffInTime / (1000 * 3600 * 24);
+      return (this.grandTotal / diffInDays).toFixed(3);
+    },
+    grandTotalLastDay() {
+      let result = 0.0;
+      this.hotspots.forEach((a) => {
+        result += a.rewardInfo.lastDayEarned;
+      });
+      return result.toFixed(3);
+    },
+    grandTotalToday() {
+      let result = 0.0;
+      this.hotspots.forEach((a) => {
+        result += a.rewardInfo.todayEarned;
+      });
+      return result.toFixed(3);
+    },
+  },
   data() {
     return {
       columns,
@@ -95,9 +153,6 @@ export default {
       hotspots: [],
       hotspotAPIUrl: "https://api.helium.io/v1/hotspots",
     };
-  },
-  created() {
-    this.loadMissingTable();
   },
   methods: {
     async rewardCall(address, startDay, endDay) {
@@ -174,7 +229,6 @@ export default {
     },
     loadMissingTable() {
       const missing = this.getMissingHotspots();
-      console.log(missing);
       this.loadTable(missing);
     },
     refreshTable() {
@@ -201,9 +255,9 @@ export default {
                 ).toFixed(3),
               },
               rewardInfo: {
-                last_day_earned: 0,
-                today_earned: 0,
-                total_earned: 0,
+                lastDayEarned: 0,
+                todayEarned: 0,
+                totalEarned: 0,
               },
             });
             return data.name;
@@ -216,7 +270,7 @@ export default {
               });
 
               if (found) {
-                found.rewardInfo.last_day_earned = data.total;
+                found.rewardInfo.lastDayEarned = data.total;
               }
             });
             this.getTodaysReward(hotspotAddress).then((data) => {
@@ -226,7 +280,7 @@ export default {
               });
 
               if (found) {
-                found.rewardInfo.today_earned = data.total;
+                found.rewardInfo.todayEarned = data.total;
               }
             });
             this.getTotalReward(hotspotAddress).then((data) => {
@@ -236,7 +290,7 @@ export default {
               });
 
               if (found) {
-                found.rewardInfo.total_earned = data.total;
+                found.rewardInfo.totalEarned = data.total;
               }
             });
           })
@@ -272,7 +326,6 @@ export default {
   },
   watch: {
     hotspotAddresses: function () {
-      console.log("called!");
       this.removeDeletedHotspots();
       this.loadMissingTable();
     },
