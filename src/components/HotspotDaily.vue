@@ -1,6 +1,5 @@
 <template>
   <div class="hello">
-    <a-button @click="loadTable">Load Table</a-button>
     <a-table
       :columns="hotspots"
       :data-source="data"
@@ -8,7 +7,9 @@
       :row-key="(hs) => hs.date.toString()"
       bordered
     >
-      <template slot="title"> Daily overview </template>
+      <template slot="title">
+        <a-button @click="loadTable">Daily overview</a-button>
+      </template>
       <template slot="footer"> © Dana Inc. </template>
     </a-table>
   </div>
@@ -109,7 +110,7 @@ export default {
         this.hotspots.forEach((hs) => {
           if (!hs.address) return;
           this.getReward(hs.address, startDay, startDayEndOfDay).then((val) => {
-            result[hs.dataIndex] = (val.data.total + "").replace('.',',');
+            result[hs.dataIndex] = (val.data.total + "").replace(".", ",");
           });
         });
 

@@ -124,21 +124,22 @@ export default {
       let result = await this.rewardCall(address, startDay, endDay);
       return result;
     },
-    async getTodaysReward(address) {
-      const now = new Date();
-      const startDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      );
-      const endDay = new Date(
-        startDay.getFullYear(),
-        startDay.getMonth(),
-        startDay.getDate(),
+    getEndOfGivenDay(date) {
+      return new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
         23,
         59,
         59
       );
+    },
+    getStartOfGivenDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    },
+    async getTodaysReward(address) {
+      const startDay = this.getStartOfGivenDay(new Date());
+      const endDay = this.getEndOfGivenDay(startDay);
       let result = await this.getReward(address, startDay, endDay);
       return result;
     },
@@ -173,6 +174,7 @@ export default {
     },
     loadMissingTable() {
       const missing = this.getMissingHotspots();
+      console.log(missing);
       this.loadTable(missing);
     },
     refreshTable() {
@@ -243,10 +245,13 @@ export default {
               let nameA = a.hotspotInfo.name;
               return nameA.localeCompare(b.hotspotInfo.name, "en");
             });
+            this.loading = false;
+            this.$emit(
+              "emitHotspots",
+              this.hotspots.map((x) => x.hotspotInfo.name)
+            );
           });
       });
-
-      this.loading = false;
     },
     getMissingHotspots() {
       const intersection = this.hotspotAddresses.filter((o1) =>
@@ -258,9 +263,17 @@ export default {
 
       return diff;
     },
+    removeDeletedHotspots() {
+      const missing = this.getMissingHotspots();
+      this.hotspots = this.hotspots.filter((x) =>
+        missing.includes(x.hotspotInfo.address)
+      );
+    },
   },
   watch: {
     hotspotAddresses: function () {
+      console.log("called!");
+      this.removeDeletedHotspots();
       this.loadMissingTable();
     },
   },
