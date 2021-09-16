@@ -8,7 +8,9 @@
       :row-key="(hs) => hs.hotspotInfo.address"
       bordered
     >
-      <template slot="title"> Hotspot overview </template>
+      <template slot="title">
+        <a-button @click="refreshTable">Hotspot overview</a-button>
+      </template>
       <span slot="name" slot-scope="name">
         <a
           v-bind:href="
@@ -95,78 +97,9 @@ export default {
     };
   },
   created() {
-    this.getHotspotInfoFromApi();
+    this.loadMissingTable();
   },
   methods: {
-    async getHotspotInfoFromApi() {
-      this.loading = true;
-      this.hotspotAddresses.forEach((hotspotAddress) => {
-        Vue.axios
-          .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
-          .then(({ data }) => {
-            data = data.data;
-            this.hotspots.push({
-              hotspotInfo: {
-                address: hotspotAddress,
-                name: data.name,
-                reward_scale: data?.reward_scale?.toFixed(3) || 0,
-                status: data.status.online,
-                height: data.status.height || 0,
-                synced_percentage: (
-                  (data?.status?.height / data.block) *
-                  100
-                ).toFixed(3),
-              },
-              rewardInfo: {
-                last_day_earned: 0,
-                today_earned: 0,
-                total_earned: 0,
-              },
-            });
-            return data.name;
-          })
-          .then((name) => {
-            this.getYesterdaysReward(hotspotAddress).then((data) => {
-              data = data.data;
-              const found = this.hotspots.find((hs) => {
-                return hs.hotspotInfo.name === name;
-              });
-
-              if (found) {
-                found.rewardInfo.last_day_earned = data.total;
-              }
-            });
-            this.getTodaysReward(hotspotAddress).then((data) => {
-              data = data.data;
-              const found = this.hotspots.find((hs) => {
-                return hs.hotspotInfo.name === name;
-              });
-
-              if (found) {
-                found.rewardInfo.today_earned = data.total;
-              }
-            });
-            this.getTotalReward(hotspotAddress).then((data) => {
-              data = data.data;
-              const found = this.hotspots.find((hs) => {
-                return hs.hotspotInfo.name === name;
-              });
-
-              if (found) {
-                found.rewardInfo.total_earned = data.total;
-              }
-            });
-          })
-          .then(() => {
-            this.hotspots = this.hotspots.sort((a, b) => {
-              let nameA = a.hotspotInfo.name;
-              return nameA.localeCompare(b.hotspotInfo.name, "en");
-            });
-          });
-      });
-
-      this.loading = false;
-    },
     async rewardCall(address, startDay, endDay) {
       try {
         let res = await Vue.axios({
@@ -237,6 +170,98 @@ export default {
       });
 
       return found ? found.hotspotInfo.address : "";
+    },
+    loadMissingTable() {
+      const missing = this.getMissingHotspots();
+      this.loadTable(missing);
+    },
+    refreshTable() {
+      this.hotspots = [];
+      this.loadTable(this.hotspotAddresses);
+    },
+    loadTable(hotspots) {
+      this.loading = true;
+      hotspots.forEach((hotspotAddress) => {
+        Vue.axios
+          .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
+          .then(({ data }) => {
+            data = data.data;
+            this.hotspots.push({
+              hotspotInfo: {
+                address: hotspotAddress,
+                name: data.name,
+                reward_scale: data?.reward_scale?.toFixed(3) || 0,
+                status: data.status.online,
+                height: data.status.height || 0,
+                synced_percentage: (
+                  (data?.status?.height / data.block) *
+                  100
+                ).toFixed(3),
+              },
+              rewardInfo: {
+                last_day_earned: 0,
+                today_earned: 0,
+                total_earned: 0,
+              },
+            });
+            return data.name;
+          })
+          .then((name) => {
+            this.getYesterdaysReward(hotspotAddress).then((data) => {
+              data = data.data;
+              const found = this.hotspots.find((hs) => {
+                return hs.hotspotInfo.name === name;
+              });
+
+              if (found) {
+                found.rewardInfo.last_day_earned = data.total;
+              }
+            });
+            this.getTodaysReward(hotspotAddress).then((data) => {
+              data = data.data;
+              const found = this.hotspots.find((hs) => {
+                return hs.hotspotInfo.name === name;
+              });
+
+              if (found) {
+                found.rewardInfo.today_earned = data.total;
+              }
+            });
+            this.getTotalReward(hotspotAddress).then((data) => {
+              data = data.data;
+              const found = this.hotspots.find((hs) => {
+                return hs.hotspotInfo.name === name;
+              });
+
+              if (found) {
+                found.rewardInfo.total_earned = data.total;
+              }
+            });
+          })
+          .then(() => {
+            this.hotspots = this.hotspots.sort((a, b) => {
+              let nameA = a.hotspotInfo.name;
+              return nameA.localeCompare(b.hotspotInfo.name, "en");
+            });
+          });
+      });
+
+      this.loading = false;
+    },
+    getMissingHotspots() {
+      const intersection = this.hotspotAddresses.filter((o1) =>
+        this.hotspots.some((o2) => o1 === o2.hotspotInfo.address)
+      );
+      const diff = this.hotspotAddresses.filter(
+        (x) => !intersection.includes(x)
+      );
+
+      return diff;
+    },
+  },
+  watch: {
+    hotspotAddresses: function () {
+      this.loadMissingTable();
     },
   },
 };

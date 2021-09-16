@@ -5,7 +5,6 @@
       :columns="hotspots"
       :data-source="data"
       :loading="loading"
-      :pagination="false"
       :row-key="(hs) => hs.date.toString()"
       bordered
     >
@@ -62,7 +61,6 @@ export default {
             return data.name;
           });
       });
-
       this.loading = false;
     },
     async rewardCall(address, startDay, endDay) {
@@ -88,7 +86,7 @@ export default {
       return result;
     },
     async loadTable() {
-      this.data = []
+      this.data = [];
       let startDay = new Date(this.startDateMining);
       let endDay = new Date();
       while (startDay <= endDay) {
@@ -111,7 +109,7 @@ export default {
         this.hotspots.forEach((hs) => {
           if (!hs.address) return;
           this.getReward(hs.address, startDay, startDayEndOfDay).then((val) => {
-            result[hs.dataIndex] = val.data.total;
+            result[hs.dataIndex] = (val.data.total + "").replace('.',',');
           });
         });
 

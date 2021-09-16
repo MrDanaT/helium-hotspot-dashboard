@@ -1,7 +1,21 @@
 <template>
   <div id="app">
-    <HotspotTable :startDateMining="startDateMining" :hotspotAddresses="hotspotAddresses" />
-    <HotspotDaily :startDateMining="startDateMining" :hotspotAddresses="hotspotAddresses" />
+    <div>
+      <input placeholder="Enter hotspot address" type="text" v-model="text" />
+      <button @click="addToHotspots">ADD</button>
+    </div>
+    <HotspotTable
+      style="margin-bottom: 1em"
+      :startDateMining="startDateMining"
+      :hotspotAddresses="hotspotAddresses"
+    />
+    <a-collapse>
+      <a-collapse-panel key="2">
+        <HotspotDaily
+          :startDateMining="startDateMining"
+          :hotspotAddresses="hotspotAddresses"
+      /></a-collapse-panel>
+    </a-collapse>
   </div>
 </template>
 
@@ -20,7 +34,14 @@ export default {
       hotspotAddresses: [
       ],
       startDateMining: new Date(2021, 7, 13),
+      text: "",
     };
+  },
+  methods: {
+    addToHotspots() {
+      this.hotspotAddresses.push(this.text);
+      this.text = "";
+    },
   },
 };
 </script>
