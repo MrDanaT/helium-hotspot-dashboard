@@ -76,7 +76,7 @@ export default {
   data() {
     return {
       hotspotAddresses: [""],
-      startDateMining: moment(new Date(2021, 7, 13)),
+      startDateMining: moment(new Date() - 7),
       inputHotspotAddress: "",
       inputOwnerAddress: "",
       hotspotNames: [],
