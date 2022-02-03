@@ -1,96 +1,188 @@
 <template>
   <div id="app">
-    <a-row type="flex" justify="space-around">
-      <a-col :span="4">
-        <a-card style="background-color: #cccccc" title="User Input">
-          <a-card title="Start Date" type="inner">
-            <a-date-picker v-model="startDateMining" />
-          </a-card>
-          <a-card title="Add/Remove hotspots" type="inner"
-            ><input
-              placeholder="Enter hotspot address"
-              type="inputHotspotAddress"
-              v-model="inputHotspotAddress"
-              style="margin-right: 0.8em"
-            />
-            <a-button type="primary" @click="addAddressToHotspots" shape="round"
-              >ADD</a-button
+    <a-row>
+      <a-col
+        ><a-card
+          title="User input data"
+          style="width: 30%; border-width: 1px; border-color: black"
+        >
+          <a-col>
+            <a-row>
+              <a-form-model-item label="Start date"
+                ><a-date-picker
+                  format="DD-MM-YYYY"
+                  :disabledDate="disabledDate"
+                  :defaultValue="startDate"
+                  @change="datePicked"
+                />
+                <a-button @click="addAddress" type="primary"
+                  >Add all HS</a-button
+                ></a-form-model-item
+              >
+            </a-row>
+            <br />
+            <a-row>
+              <a-input
+                placeholder="Input HS address"
+                v-model="inputHotspotAddress"
+                :style="{ width: textBoxWidth + '%' }"
+              />
+              <a-button
+                @click="addAddress"
+                :style="{ width: 100 - textBoxWidth + '%' }"
+                type="primary"
+                >Add HS</a-button
+              ></a-row
             >
-            <a-button
-              :disabled="hotspotAddresses.length === 0"
-              shape="round"
-              type="danger"
-              @click="removeFromHotspots"
-              >REMOVE</a-button
-            ></a-card
-          ><a-card title="Add hotspots w. owner address" type="inner"
-            ><input
-              placeholder="Enter your wallet address"
-              type="inputHotspotAddress"
-              v-model="inputOwnerAddress"
-              style="margin-right: 0.8em"
-            />
-            <a-button type="primary" @click="addOwnersHotspots" shape="round"
-              >ADD</a-button
+            <br />
+            <a-row>
+              <a-input
+                placeholder="Input owner address"
+                v-model="inputOwnerAddress"
+                :style="{ width: textBoxWidth + '%' }"
+              />
+              <a-button
+                @click="addAddress"
+                :style="{ width: 100 - textBoxWidth + '%' }"
+                type="primary"
+                >Add all HS</a-button
+              ></a-row
             >
-            <a-button
-              :disabled="hotspotAddresses.length === 0"
-              shape="round"
-              type="danger"
-              @click="removeOwnersHotspots"
-              >REMOVE</a-button
-            >
-          </a-card>
+          </a-col>
         </a-card>
       </a-col>
-      <a-col :span="18"
-        ><div style="margin-bottom: 1em"></div>
-        <HotspotTable
-          style="margin-bottom: 1em"
-          :startDateMining="new Date(startDateMining)"
-          :hotspotAddresses="hotspotAddresses"
-          @emitHotspots="processHotspots" />
-        <a-collapse>
-          <a-collapse-panel key="2">
-            <HotspotDaily
-              :startDateMining="startDateMining"
-              :hotspotAddresses="hotspotAddresses"
-          /></a-collapse-panel> </a-collapse
-      ></a-col>
+
+      <a-col>
+        <a-table
+          :columns="columns"
+          :data-source="mappedHotspots"
+          :row-key="(hs) => hs.address"
+          :name="counter"
+          :pagination="true"
+          bordered
+        >
+          <span slot="name" slot-scope="name">
+            <a
+              v-bind:href="
+                'https://explorer.helium.com/hotspots/' + findAddress(name)
+              "
+              >{{ name }}</a
+            >
+          </span>
+          <span slot="status" slot-scope="status">
+            <a-tag :color="status === 'online' ? 'green' : 'volcano'">
+              {{ status }}
+            </a-tag>
+          </span></a-table
+        >
+      </a-col>
     </a-row>
   </div>
 </template>
 
 <script>
-import HotspotTable from "./components/HotspotTable.vue";
-import HotspotDaily from "./components/HotspotDaily.vue";
 import moment from "moment";
 import Vue from "vue";
 
+const columns = [
+  {
+    title: "Name",
+    dataIndex: "name",
+    scopedSlots: {
+      customRender: "name",
+    },
+    ellipsis: true,
+  },
+  {
+    title: "Reward Scale",
+    dataIndex: "reward_scale",
+  },
+  {
+    title: "Status",
+    dataIndex: "online",
+    scopedSlots: {
+      customRender: "status",
+    },
+  },
+  {
+    title: "Sync Percentage (%)",
+    dataIndex: "syncPercentage",
+  },
+  {
+    title: "Last Day Earned (HNT)",
+    dataIndex: "lastDayEarned",
+    ellipsis: true,
+  },
+];
+
 export default {
   name: "App",
-  components: {
-    HotspotTable,
-    HotspotDaily,
-  },
+  components: {},
   data() {
     return {
-      hotspotAddresses: [""],
-      startDateMining: moment(new Date() - 7),
+      hotspotDict: [],
+      hotspotAPIUrl: "https://api.helium.io/v1/hotspots",
+      startDate: moment(new Date() - 7),
       inputHotspotAddress: "",
       inputOwnerAddress: "",
-      hotspotNames: [],
+      textBoxWidth: 80,
+      columns,
+      counter: 0,
     };
   },
-  created() {
-    this.addOwnersHotspots();
-    this.addAddressToHotspots();
+  computed: {
+    mappedHotspots() {
+      console.log(this.hotspotDict);
+      return this.hotspotDict;
+    },
   },
   methods: {
-    addAddressToHotspots() {
-      if (this.hotspotAddresses.includes(this.inputHotspotAddress)) return;
-      this.hotspotAddresses.push(this.inputHotspotAddress);
-      this.inputHotspotAddress = "";
+    addAddress() {
+      if (this.hotspotDict.includes(this.inputHotspotAddress)) {
+        this.openNotification(
+          "Cannot add hotspot",
+          "One or more hotspots have already been added to the list."
+        );
+      }
+
+      this.processHotspot(this.inputHotspotAddress).then(() => {
+        this.inputHotspotAddress = "";
+      });
+    },
+    findAddress(name) {
+      console.log(name);
+      const idx = this.hotspotDict.findIndex((hs) => hs.name === name);
+
+      return idx > -1 ? this.hotspotDict[idx].address : "#";
+    },
+    datePicked(time, timeString) {
+      console.log(time, timeString);
+    },
+    disabledDate(current) {
+      return current > moment();
+    },
+    async processHotspot(hotspotAddress) {
+      await Vue.axios
+        .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
+        .then(({ data }) => {
+          data = data.data;
+          this.hotspotDict.push({
+            online: data.status.online,
+            height: data.status.height || 0,
+            reward_scale: data?.reward_scale?.toFixed(2) || 0,
+            name: data.name,
+            syncPercentage: ((data?.status?.height / data.block) * 100).toFixed(
+              2
+            ),
+            address: "11o2tzY31XD6B2uBn6bjB75vJWtkNcsvqURF6B3DiQpyuWFhhu9",
+          });
+        });
+    },
+    openNotification(message, description) {
+      this.$notification.open({
+        message,
+        description,
+      });
     },
     removeFromHotspots() {
       let idx = this.hotspotNames.findIndex(
@@ -105,9 +197,6 @@ export default {
 
       this.hotspotAddresses.splice(idx, 1);
       this.inputHotspotAddress = "";
-    },
-    processHotspots(names) {
-      this.hotspotNames = names;
     },
     async getOwnersHotspots() {
       try {
