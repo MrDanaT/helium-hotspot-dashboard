@@ -42,7 +42,7 @@
                 :style="{ width: textBoxWidth + '%' }"
               />
               <a-button
-                @click="addAddress"
+                @click="addOwnersHotspots"
                 :style="{ width: 100 - textBoxWidth + '%' }"
                 type="primary"
                 >Add all HS</a-button
@@ -132,26 +132,56 @@ export default {
   },
   computed: {
     mappedHotspots() {
-      console.log(this.hotspotDict);
       return this.hotspotDict;
     },
   },
   methods: {
+    findIndexOf(nameOrAddress) {
+      console.log("FIND: ", nameOrAddress, "IN: ", this.hotspotDict);
+      const idx = this.hotspotDict.findIndex(
+        (hs) => hs.name === nameOrAddress || hs.address === nameOrAddress
+      );
+
+      return idx;
+    },
+    hotspotAlreadyAdded(nameOrAddress) {
+      let idx = this.findIndexOf(nameOrAddress);
+
+      return idx > -1;
+    },
+    getHotspot(nameOrAddress) {
+      const idx = this.findIndexOf(nameOrAddress);
+
+      return idx > -1 ? this.hotspotDict[idx] : false;
+    },
     addAddress() {
-      if (this.hotspotDict.includes(this.inputHotspotAddress)) {
+      if (this.hotspotAlreadyAdded(this.inputHotspotAddress)) {
         this.openNotification(
           "Cannot add hotspot",
-          "One or more hotspots have already been added to the list."
+          "Hotspot is already in the list.",
+          "error"
         );
+      } else {
+        this.processHotspot(this.inputHotspotAddress)
+          .then(() => {
+            this.inputHotspotAddress = "";
+            this.openNotification(
+              "Succesful",
+              "Hotspot has been added.",
+              "success"
+            );
+          })
+          .catch(() => {
+            this.openNotification(
+              "Cannot add hotspot",
+              "Address is wrong.",
+              "error"
+            );
+          });
       }
-
-      this.processHotspot(this.inputHotspotAddress).then(() => {
-        this.inputHotspotAddress = "";
-      });
     },
     findAddress(name) {
-      console.log(name);
-      const idx = this.hotspotDict.findIndex((hs) => hs.name === name);
+      const idx = this.findIndexOf(name);
 
       return idx > -1 ? this.hotspotDict[idx].address : "#";
     },
@@ -161,25 +191,26 @@ export default {
     disabledDate(current) {
       return current > moment();
     },
+    convertAPIHotspotToMyHotspot(data) {
+      return {
+        online: data.status.online,
+        height: data.status.height || 0,
+        reward_scale: data?.reward_scale?.toFixed(2) || 0,
+        name: data.name,
+        syncPercentage: ((data?.status?.height / data.block) * 100).toFixed(2),
+        address: data.address,
+      };
+    },
     async processHotspot(hotspotAddress) {
       await Vue.axios
         .get(`${this.hotspotAPIUrl}/${hotspotAddress}`)
         .then(({ data }) => {
           data = data.data;
-          this.hotspotDict.push({
-            online: data.status.online,
-            height: data.status.height || 0,
-            reward_scale: data?.reward_scale?.toFixed(2) || 0,
-            name: data.name,
-            syncPercentage: ((data?.status?.height / data.block) * 100).toFixed(
-              2
-            ),
-            address: "11o2tzY31XD6B2uBn6bjB75vJWtkNcsvqURF6B3DiQpyuWFhhu9",
-          });
+          this.hotspotDict.push(this.convertAPIHotspotToMyHotspot(data));
         });
     },
-    openNotification(message, description) {
-      this.$notification.open({
+    openNotification(message, description, type) {
+      this.$notification[type]({
         message,
         description,
       });
@@ -209,20 +240,49 @@ export default {
           },
         });
         if (res.status == 200) {
-          return res.data.data.map((hs) => hs.address);
+          return res.data.data.map((hs) =>
+            this.convertAPIHotspotToMyHotspot(hs)
+          );
         }
       } catch (err) {
-        console.error(err);
+        this.openNotification(
+          "Cannot add hotspot",
+          "Address is wrong.",
+          "error"
+        );
       }
     },
     addOwnersHotspots() {
-      this.getOwnersHotspots().then((arr) => {
-        arr.forEach((element) => {
-          if (this.hotspotAddresses.includes(element)) return;
-          this.hotspotAddresses.push(element);
-          this.inputOwnerAddress = "";
+      let isAdded = 0;
+      let isIgnored = 0;
+      this.getOwnersHotspots()
+        .then((arr) => {
+          arr.forEach((hs) => {
+            if (this.findIndexOf(hs.address) == -1) {
+              this.hotspotDict.push(hs);
+              this.inputOwnerAddress = "";
+              isAdded++;
+            } else {
+              isIgnored++;
+            }
+          });
+        })
+        .then(() => {
+          if (isAdded > 0) {
+            this.openNotification(
+              "Succesful",
+              `${isAdded} hotspot(s) have been added.`,
+              "success"
+            );
+          }
+          if (isIgnored > 0) {
+            this.openNotification(
+              "Cannot add hotspot(s)",
+              `${isIgnored} hotspot(s) are already in the list.`,
+              "warning"
+            );
+          }
         });
-      });
     },
     removeOwnersHotspots() {
       this.getOwnersHotspots().then((arr) => {
