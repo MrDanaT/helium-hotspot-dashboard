@@ -25,13 +25,13 @@
               />
               <a-button
                 @click="addAddress"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="primary"
                 >Add HS</a-button
               >
               <a-button
                 @click="removeAddress(inputHotspotAddress)"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="danger"
                 >Remove HS</a-button
               ></a-row
@@ -102,9 +102,8 @@
       </a-col>
       <div style="text-align: center">
         <a-button type="danger" @click="loadData">Load Data</a-button>
-        <br />
-        <a-row type="flex" justify="space-between">
-          <a-col v-for="(reward, idx) in rewards" :key="idx">
+        <a-row type="flex" justify="start">
+          <a-col v-for="reward in rewards" :key="reward[0]">
             <a-card :title="reward[0]">
               <table
                 v-for="hs in reward.slice(1)"
@@ -136,51 +135,8 @@ Date.prototype.addDays = function (days) {
   return date;
 };
 
-const columns = [
-  {
-    title: "Name",
-    dataIndex: "name",
-    scopedSlots: {
-      customRender: "name",
-    },
-    ellipsis: true,
-  },
-  {
-    title: "Reward Scale",
-    dataIndex: "reward_scale",
-    ellipsis: true,
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    scopedSlots: {
-      customRender: "status",
-    },
-    ellipsis: true,
-  },
-  {
-    title: "Sync Percentage (%)",
-    dataIndex: "syncPercentage",
-    ellipsis: true,
-  },
-  {
-    title: "Last Day Earned (HNT)",
-    dataIndex: "lastDayEarned",
-    ellipsis: true,
-  },
-  {
-    title: "Options",
-    dataIndex: "options",
-    ellipsis: true,
-    scopedSlots: {
-      customRender: "options",
-    },
-  },
-];
-
 export default {
   name: "App",
-  components: {},
   data() {
     return {
       hotspotDict: [],
@@ -188,8 +144,7 @@ export default {
       datePicked: moment(this.currDay).days(-3),
       inputHotspotAddress: "",
       inputOwnerAddress: "",
-      textBoxWidth: 80,
-      columns,
+      textBoxWidth: this.$device.mobile ? 40 : 80,
       rewards: [],
     };
   },
@@ -216,6 +171,53 @@ export default {
         currentDate = currentDate.addDays(1);
       }
       return dateArray;
+    },
+    columns() {
+      const results = [
+        {
+          title: "Name",
+          dataIndex: "name",
+          scopedSlots: {
+            customRender: "name",
+          },
+        },
+        {
+          title: "Status",
+          dataIndex: "status",
+          scopedSlots: {
+            customRender: "status",
+          },
+          ellipsis: true,
+        },
+        {
+          title: "Last Day Earned (HNT)",
+          dataIndex: "lastDayEarned",
+          ellipsis: this.$device.mobile,
+        },
+        {
+          title: "Options",
+          dataIndex: "options",
+          ellipsis: true,
+          scopedSlots: {
+            customRender: "options",
+          },
+        },
+      ];
+
+      if (!this.$device.mobile) {
+        results.splice(1, 0, {
+          title: "Reward Scale",
+          dataIndex: "reward_scale",
+          ellipsis: true,
+        });
+        results.splice(3, 0, {
+          title: "Sync Percentage (%)",
+          dataIndex: "syncPercentage",
+          ellipsis: true,
+        });
+      }
+
+      return results;
     },
   },
   methods: {
@@ -480,12 +482,11 @@ export default {
 }
 
 #banner {
-  height: 3rem;
+  height: 2.5rem;
   background: black;
   color: white;
   text-align: center;
   vertical-align: middle;
-  margin: auto;
   padding: 10px;
 }
 </style>
