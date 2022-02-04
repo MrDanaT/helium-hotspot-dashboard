@@ -115,8 +115,8 @@
                 <tr>
                   <th>{{ normalise(hs.name) }}</th>
                 </tr>
-                <tr>
-                  <td>{{ hs.total.toString().replace(".", ",") }}</td>
+                <tr @click="copyToClipboard(convertToComma(hs.total))">
+                  <td>{{ convertToComma(hs.total) }}</td>
                 </tr>
               </table>
             </a-card>
@@ -243,6 +243,21 @@ export default {
     },
   },
   methods: {
+    convertToComma(txt) {
+      return txt.toString().replace(".", ",");
+    },
+    async copyToClipboard(txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+        this.openNotification(
+          "Succesful",
+          "Reward has been copied.",
+          "success"
+        );
+      } catch ($e) {
+        this.openNotification("Cannot copy reward.", $e, "error");
+      }
+    },
     findIndexOf(nameOrAddress) {
       const idx = this.hotspotDict.findIndex(
         (hs) => hs.name === nameOrAddress || hs.address === nameOrAddress
@@ -330,6 +345,7 @@ export default {
       this.$notification[type]({
         message,
         description,
+        duration: 3,
       });
     },
     async getOwnersHotspots() {
