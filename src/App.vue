@@ -18,9 +18,10 @@
             </a-row>
             <br />
             <a-row>
-              <a-input
+              <a-auto-complete
                 placeholder="Input HS address"
                 v-model="inputHotspotAddress"
+                :data-source="addressAutocomplete"
                 :style="{ width: textBoxWidth + '%' }"
               />
               <a-button
@@ -38,9 +39,10 @@
             >
             <br />
             <a-row>
-              <a-input
+              <a-auto-complete
                 placeholder="Input owner address"
                 v-model="inputOwnerAddress"
+                :data-source="ownerAutocomplete"
                 :style="{ width: textBoxWidth + '%' }"
               />
               <a-button
@@ -218,6 +220,26 @@ export default {
       }
 
       return results;
+    },
+    addressAutocomplete() {
+      const result = this.hotspotDict
+        .filter((hs) => {
+          return hs.address.includes(this.inputHotspotAddress);
+        })
+        .map((hs) => {
+          return hs.address;
+        });
+      return result;
+    },
+    ownerAutocomplete() {
+      const result = this.hotspotDict
+        .filter((hs) => {
+          return hs.owner?.includes(this.inputOwnerAddress);
+        })
+        .map((hs) => {
+          return hs.owner;
+        });
+      return [...new Set(result)];
     },
   },
   methods: {
