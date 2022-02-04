@@ -28,13 +28,13 @@
                 @click="addAddress"
                 :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="primary"
-                >Add HS</a-button
+                >{{ $device.mobile ? "+" : "Add" }} HS</a-button
               >
               <a-button
                 @click="removeAddress(inputHotspotAddress)"
                 :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="danger"
-                >Remove HS</a-button
+                >{{ $device.mobile ? "-" : "Remove" }} HS</a-button
               ></a-row
             >
             <br />
@@ -49,13 +49,13 @@
                 @click="addOwnersHotspots"
                 :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
                 type="primary"
-                >Add all HS</a-button
+                >{{ $device.mobile ? "+" : "Add" }} all HS</a-button
               >
               <a-button
                 @click="removeOwnersHotspots"
                 :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
                 type="danger"
-                >Remove all HS</a-button
+                >{{ $device.mobile ? "-" : "Remove" }} all HS</a-button
               ></a-row
             >
           </a-col>
