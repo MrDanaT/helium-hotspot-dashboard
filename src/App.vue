@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <div id="banner">Helium Hotspot Dashboard</div>
+    <div id="banner" style="font-weight: bold">Helium Hotspot Dashboard</div>
     <a-row>
       <a-col
         ><a-card
@@ -13,13 +13,8 @@
                 ><a-date-picker
                   format="DD-MM-YYYY"
                   :disabledDate="disabledDate"
-                  :defaultValue="startDate"
-                  @change="datePicked"
-                />
-                <a-button @click="addAddress" type="primary"
-                  >Load data</a-button
-                ></a-form-model-item
-              >
+                  v-model="datePicked"
+              /></a-form-model-item>
             </a-row>
             <br />
             <a-row>
@@ -50,9 +45,15 @@
               />
               <a-button
                 @click="addOwnersHotspots"
-                :style="{ width: 100 - textBoxWidth + '%' }"
+                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
                 type="primary"
                 >Add all HS</a-button
+              >
+              <a-button
+                @click="removeOwnersHotspots"
+                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                type="danger"
+                >Remove all HS</a-button
               ></a-row
             >
           </a-col>
@@ -93,13 +94,34 @@
             </a-tag>
           </span>
           <span slot="options" slot-scope="skip, hs">
-            <a-button
-              type="danger"
-              @click="removeAddress(hs.address)"
-            ></a-button>
+            <a-button type="danger" @click="removeAddress(hs.address)"
+              ><a-icon type="delete"
+            /></a-button>
           </span>
         </a-table>
       </a-col>
+      <div style="text-align: center">
+        <a-button type="danger" @click="loadData">Load Data</a-button>
+        <br />
+        <a-row type="flex" justify="space-between">
+          <a-col v-for="(reward, idx) in rewards" :key="idx">
+            <a-card :title="reward[0]">
+              <table
+                v-for="hs in reward.slice(1)"
+                :key="hs.name"
+                style="border: 0.05rem solid black"
+              >
+                <tr>
+                  <th>{{ normalise(hs.name) }}</th>
+                </tr>
+                <tr>
+                  <td>{{ hs.total.toString().replace(".", ",") }}</td>
+                </tr>
+              </table>
+            </a-card>
+          </a-col>
+        </a-row>
+      </div>
     </a-row>
   </div>
 </template>
@@ -107,6 +129,12 @@
 <script>
 import moment from "moment";
 import Vue from "vue";
+
+Date.prototype.addDays = function (days) {
+  var date = new Date(this.valueOf());
+  date.setDate(date.getDate() + days);
+  return date;
+};
 
 const columns = [
   {
@@ -157,11 +185,12 @@ export default {
     return {
       hotspotDict: [],
       hotspotAPIUrl: "https://api.helium.io/v1/hotspots",
-      startDate: moment(this.currDay).days(-3),
+      datePicked: moment(this.currDay).days(-3),
       inputHotspotAddress: "",
       inputOwnerAddress: "",
       textBoxWidth: 80,
       columns,
+      rewards: [],
     };
   },
   computed: {
@@ -177,7 +206,16 @@ export default {
         );
     },
     currDay() {
-      return new Date(new Date().toISOString());
+      return this.getStartOfGivenDay(new Date(new Date().toISOString()));
+    },
+    allDates() {
+      const dateArray = new Array();
+      let currentDate = this.getStartOfGivenDay(this.datePicked.toDate());
+      while (currentDate < this.currDay) {
+        dateArray.push(new Date(currentDate));
+        currentDate = currentDate.addDays(1);
+      }
+      return dateArray;
     },
   },
   methods: {
@@ -234,9 +272,6 @@ export default {
       const idx = this.findIndexOf(name);
 
       return idx > -1 ? this.hotspotDict[idx].address : "#";
-    },
-    datePicked(time, timeString) {
-      console.log(time, timeString);
     },
     disabledDate(current) {
       return current > moment();
@@ -300,7 +335,6 @@ export default {
       this.getOwnersHotspots()
         .then((arr) => {
           arr.forEach((hs) => {
-            console.log(hs);
             if (this.findIndexOf(hs.address) == -1) {
               this.hotspotDict.push(hs);
               this.inputOwnerAddress = "";
@@ -314,14 +348,18 @@ export default {
           if (isAdded > 0) {
             this.openNotification(
               "Succesful",
-              `${isAdded} hotspot(s) have been added.`,
+              `${isAdded} hotspot${isAdded > 1 ? "s" : ""} ${
+                isAdded > 1 ? "have" : "has"
+              } been added.`,
               "success"
             );
           }
           if (isIgnored > 0) {
             this.openNotification(
-              "Cannot add hotspot(s)",
-              `${isIgnored} hotspot(s) are already in the list.`,
+              `Cannot add hotspot${isIgnored > 1 ? "s" : ""}`,
+              `${isIgnored} hotspot${isIgnored > 1 ? "s" : ""} ${
+                isIgnored > 1 ? "are" : "is"
+              } already in the list.`,
               "warning"
             );
           }
@@ -394,6 +432,40 @@ export default {
           "success"
         );
       }
+    },
+    removeOwnersHotspots() {
+      const rest = this.hotspotDict.filter(
+        (hs) => hs.owner !== this.inputOwnerAddress
+      );
+      const remainingCount = this.hotspotDict.length - rest.length;
+      if (remainingCount > 0) {
+        this.openNotification(
+          "Succesful",
+          `${remainingCount} hotspot${remainingCount > 1 ? "s" : ""} ${
+            remainingCount > 1 ? "have" : "has"
+          } been removed.`,
+          "success"
+        );
+        this.hotspotDict = rest;
+        this.inputOwnerAddress = "";
+      }
+    },
+    loadData() {
+      this.rewards = [];
+      this.allDates.forEach((date) => {
+        const what = new Array();
+        what.push(date.toLocaleDateString());
+        this.hotspotDict.forEach((hs) => {
+          this.rewardCall(
+            hs.address,
+            this.getStartOfGivenDay(date),
+            this.getEndOfGivenDay(date)
+          ).then(({ data }) => {
+            what.push({ name: hs.name, total: data.total });
+          });
+        });
+        this.rewards.push(what);
+      });
     },
   },
 };
