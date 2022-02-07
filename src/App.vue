@@ -104,6 +104,18 @@
       </a-col>
       <div style="text-align: center">
         <a-button type="danger" @click="loadData">Load Data</a-button>
+        <a-button type="primary"
+          ><download-excel
+            :data="rewardsExcellable"
+            :name="new Date().toLocaleDateString()"
+            :fields="jsonFields"
+            worksheet="Main"
+            default-value="N/A"
+            :header="excelName"
+            footer="Exported via https://github.com/MrDanaT/helium-hotspot-dashboard"
+            >Convert To Excel</download-excel
+          ></a-button
+        >
         <a-row type="flex" justify="start">
           <a-col v-for="reward in rewards" :key="reward[0]">
             <a-card :title="reward[0]">
@@ -115,7 +127,10 @@
                 <tr>
                   <th>{{ normalise(hs.name) }}</th>
                 </tr>
-                <tr @click="copyToClipboard(convertToComma(hs.total))">
+                <tr
+                  @click="copyToClipboard(convertToComma(hs.total))"
+                  style="color: blue"
+                >
                   <td>{{ convertToComma(hs.total) }}</td>
                 </tr>
               </table>
@@ -240,6 +255,45 @@ export default {
           return hs.owner;
         });
       return [...new Set(result)];
+    },
+    rewardsExcellable() {
+      const result = this.rewards.map((arr) => {
+        const [, ...rest] = arr;
+        let res = {
+          date: arr[0],
+        };
+        if (rest.length > 0) {
+          res = {
+            ...res,
+            ...rest.reduce(
+              (a, v) => ({
+                ...a,
+                [v.name]: this.convertToComma(v.total),
+              }),
+              {}
+            ),
+          };
+        }
+        return res;
+      });
+      return result;
+    },
+    jsonFields() {
+      let res = this.hotspotDict.map((hs) => {
+        return hs["name"];
+      });
+      res = {
+        Date: "date",
+        ...res.reduce((a, v) => ({ ...a, [v]: v }), {}),
+      };
+      return res;
+    },
+    excelName() {
+      const format = "DD/MM/YYYY";
+      const currDay = moment(this.currDay);
+      return `Export of rewards between ${this.datePicked.format(
+        format
+      )}-${currDay.format(format)}`;
     },
   },
   methods: {
@@ -366,7 +420,6 @@ export default {
             "error"
           );
         });
-
       return results;
     },
     addOwnersHotspots() {
@@ -491,6 +544,7 @@ export default {
       }
     },
     loadData() {
+      this.loadData = true;
       this.rewards = [];
       this.allDates.forEach((date) => {
         const what = new Array();
@@ -506,6 +560,7 @@ export default {
         });
         this.rewards.push(what);
       });
+      this.loadData = false;
     },
   },
 };
