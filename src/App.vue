@@ -18,42 +18,44 @@
             </a-row>
             <br />
             <a-row>
-              <a-input
+              <a-auto-complete
                 placeholder="Input HS address"
                 v-model="inputHotspotAddress"
+                :data-source="addressAutocomplete"
                 :style="{ width: textBoxWidth + '%' }"
               />
               <a-button
                 @click="addAddress"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="primary"
-                >Add HS</a-button
+                >{{ $device.mobile ? "+" : "Add" }} HS</a-button
               >
               <a-button
                 @click="removeAddress(inputHotspotAddress)"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                :style="{ width: (100 - textBoxWidth) / 2.0 + '%' }"
                 type="danger"
-                >Remove HS</a-button
+                >{{ $device.mobile ? "-" : "Remove" }} HS</a-button
               ></a-row
             >
             <br />
             <a-row>
-              <a-input
+              <a-auto-complete
                 placeholder="Input owner address"
                 v-model="inputOwnerAddress"
+                :data-source="ownerAutocomplete"
                 :style="{ width: textBoxWidth + '%' }"
               />
               <a-button
                 @click="addOwnersHotspots"
                 :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
                 type="primary"
-                >Add all HS</a-button
+                >{{ $device.mobile ? "+" : "Add" }} all HS</a-button
               >
               <a-button
                 @click="removeOwnersHotspots"
                 :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
                 type="danger"
-                >Remove all HS</a-button
+                >{{ $device.mobile ? "-" : "Remove" }} all HS</a-button
               ></a-row
             >
           </a-col>
@@ -102,9 +104,20 @@
       </a-col>
       <div style="text-align: center">
         <a-button type="danger" @click="loadData">Load Data</a-button>
-        <br />
-        <a-row type="flex" justify="space-between">
-          <a-col v-for="(reward, idx) in rewards" :key="idx">
+        <a-button type="primary"
+          ><download-excel
+            :data="rewardsExcellable"
+            :name="new Date().toLocaleDateString()"
+            :fields="jsonFields"
+            worksheet="Main"
+            default-value="N/A"
+            :header="excelName"
+            footer="Exported via https://github.com/MrDanaT/helium-hotspot-dashboard"
+            >Convert To Excel</download-excel
+          ></a-button
+        >
+        <a-row type="flex" justify="start">
+          <a-col v-for="reward in rewards" :key="reward[0]">
             <a-card :title="reward[0]">
               <table
                 v-for="hs in reward.slice(1)"
@@ -114,8 +127,11 @@
                 <tr>
                   <th>{{ normalise(hs.name) }}</th>
                 </tr>
-                <tr>
-                  <td>{{ hs.total.toString().replace(".", ",") }}</td>
+                <tr
+                  @click="copyToClipboard(convertToComma(hs.total))"
+                  style="color: blue"
+                >
+                  <td>{{ convertToComma(hs.total) }}</td>
                 </tr>
               </table>
             </a-card>
@@ -136,51 +152,8 @@ Date.prototype.addDays = function (days) {
   return date;
 };
 
-const columns = [
-  {
-    title: "Name",
-    dataIndex: "name",
-    scopedSlots: {
-      customRender: "name",
-    },
-    ellipsis: true,
-  },
-  {
-    title: "Reward Scale",
-    dataIndex: "reward_scale",
-    ellipsis: true,
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    scopedSlots: {
-      customRender: "status",
-    },
-    ellipsis: true,
-  },
-  {
-    title: "Sync Percentage (%)",
-    dataIndex: "syncPercentage",
-    ellipsis: true,
-  },
-  {
-    title: "Last Day Earned (HNT)",
-    dataIndex: "lastDayEarned",
-    ellipsis: true,
-  },
-  {
-    title: "Options",
-    dataIndex: "options",
-    ellipsis: true,
-    scopedSlots: {
-      customRender: "options",
-    },
-  },
-];
-
 export default {
   name: "App",
-  components: {},
   data() {
     return {
       hotspotDict: [],
@@ -188,8 +161,7 @@ export default {
       datePicked: moment(this.currDay).days(-3),
       inputHotspotAddress: "",
       inputOwnerAddress: "",
-      textBoxWidth: 80,
-      columns,
+      textBoxWidth: this.$device.mobile ? 40 : 80,
       rewards: [],
     };
   },
@@ -217,8 +189,129 @@ export default {
       }
       return dateArray;
     },
+    columns() {
+      const results = [
+        {
+          title: "Name",
+          dataIndex: "name",
+          scopedSlots: {
+            customRender: "name",
+          },
+        },
+        {
+          title: "Status",
+          dataIndex: "status",
+          scopedSlots: {
+            customRender: "status",
+          },
+          ellipsis: true,
+        },
+        {
+          title: "Last Day Earned (HNT)",
+          dataIndex: "lastDayEarned",
+          ellipsis: this.$device.mobile,
+        },
+        {
+          title: "Options",
+          dataIndex: "options",
+          ellipsis: true,
+          scopedSlots: {
+            customRender: "options",
+          },
+        },
+      ];
+
+      if (!this.$device.mobile) {
+        results.splice(1, 0, {
+          title: "Reward Scale",
+          dataIndex: "reward_scale",
+          ellipsis: true,
+        });
+        results.splice(3, 0, {
+          title: "Sync Percentage (%)",
+          dataIndex: "syncPercentage",
+          ellipsis: true,
+        });
+      }
+
+      return results;
+    },
+    addressAutocomplete() {
+      const result = this.hotspotDict
+        .filter((hs) => {
+          return hs.address.includes(this.inputHotspotAddress);
+        })
+        .map((hs) => {
+          return hs.address;
+        });
+      return result;
+    },
+    ownerAutocomplete() {
+      const result = this.hotspotDict
+        .filter((hs) => {
+          return hs.owner?.includes(this.inputOwnerAddress);
+        })
+        .map((hs) => {
+          return hs.owner;
+        });
+      return [...new Set(result)];
+    },
+    rewardsExcellable() {
+      const result = this.rewards.map((arr) => {
+        const [, ...rest] = arr;
+        let res = {
+          date: arr[0],
+        };
+        if (rest.length > 0) {
+          res = {
+            ...res,
+            ...rest.reduce(
+              (a, v) => ({
+                ...a,
+                [v.name]: this.convertToComma(v.total),
+              }),
+              {}
+            ),
+          };
+        }
+        return res;
+      });
+      return result;
+    },
+    jsonFields() {
+      let res = this.hotspotDict.map((hs) => {
+        return hs["name"];
+      });
+      res = {
+        Date: "date",
+        ...res.reduce((a, v) => ({ ...a, [v]: v }), {}),
+      };
+      return res;
+    },
+    excelName() {
+      const format = "DD/MM/YYYY";
+      const currDay = moment(this.currDay);
+      return `Export of rewards between ${this.datePicked.format(
+        format
+      )}-${currDay.format(format)}`;
+    },
   },
   methods: {
+    convertToComma(txt) {
+      return txt.toString().replace(".", ",");
+    },
+    async copyToClipboard(txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+        this.openNotification(
+          "Succesful",
+          "Reward has been copied.",
+          "success"
+        );
+      } catch ($e) {
+        this.openNotification("Cannot copy reward.", $e, "error");
+      }
+    },
     findIndexOf(nameOrAddress) {
       const idx = this.hotspotDict.findIndex(
         (hs) => hs.name === nameOrAddress || hs.address === nameOrAddress
@@ -306,6 +399,7 @@ export default {
       this.$notification[type]({
         message,
         description,
+        duration: 3,
       });
     },
     async getOwnersHotspots() {
@@ -326,7 +420,6 @@ export default {
             "error"
           );
         });
-
       return results;
     },
     addOwnersHotspots() {
@@ -451,6 +544,7 @@ export default {
       }
     },
     loadData() {
+      this.loadData = true;
       this.rewards = [];
       this.allDates.forEach((date) => {
         const what = new Array();
@@ -466,6 +560,7 @@ export default {
         });
         this.rewards.push(what);
       });
+      this.loadData = false;
     },
   },
 };
@@ -480,12 +575,11 @@ export default {
 }
 
 #banner {
-  height: 3rem;
+  height: 2.5rem;
   background: black;
   color: white;
   text-align: center;
   vertical-align: middle;
-  margin: auto;
   padding: 10px;
 }
 </style>
