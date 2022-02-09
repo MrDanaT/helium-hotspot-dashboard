@@ -10,6 +10,7 @@
     "heroku-postbuild": "npm run lint & npm run build"
   },
   "dependencies": {
+    "@vue/cli-service": "~4.5.0",
     "ant-design-vue": "^1.7.8",
     "axios": "^0.21.4",
     "core-js": "^3.6.5",
