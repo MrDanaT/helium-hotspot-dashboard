@@ -8,7 +8,7 @@ import axios from "axios";
 import VueAxios from "vue-axios";
 import device from "vue-device-detector";
 import JsonExcel from "vue-json-excel";
- 
+
 Vue.component("downloadExcel", JsonExcel);
 Vue.config.productionTip = false;
 

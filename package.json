@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "heroku-postbuild": "npm run build"
+    "heroku-postbuild": "npm run lint & npm run build"
   },
   "dependencies": {
     "ant-design-vue": "^1.7.8",
