@@ -2,6 +2,8 @@
 
 A simple [Helium](https://www.helium.com/) hotspot dashboard made in [Vue](https://vuejs.org/) which allows to see how much [$HNT](https://coinmarketcap.com/currencies/helium/) a given set of hotspots have earned on a daily bases.
 
+Hosted on Heroku: https://helium-hotspot-dashboard.herokuapp.com/
+
 ## V2
 
 The second version of the dashboard has a few more functionalities so far: including exporting the rewards from the selected period to Excel. This makes it easy to analyse the data with the tools that Excel provides.
