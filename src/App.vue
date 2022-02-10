@@ -180,7 +180,6 @@ export default {
   mounted() {
     if (localStorage.hotspotAddress) {
       const local = JSON.parse(localStorage.hotspotAddress);
-      console.log(local);
       local.forEach((address) => {
         this.inputHotspotAddress = address;
         this.addAddress();
