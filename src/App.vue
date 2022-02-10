@@ -544,8 +544,7 @@ export default {
       }
     },
     loadData() {
-      this.loadData = true;
-      this.rewards = [];
+      this.rewards.splice(0);
       this.allDates.forEach((date) => {
         const what = new Array();
         what.push(date.toLocaleDateString());
@@ -560,7 +559,6 @@ export default {
         });
         this.rewards.push(what);
       });
-      this.loadData = false;
     },
   },
 };
