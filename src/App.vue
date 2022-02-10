@@ -39,25 +39,36 @@
             >
             <br />
             <a-row>
-              <a-auto-complete
-                placeholder="Input owner address"
-                v-model="inputOwnerAddress"
-                :data-source="ownerAutocomplete"
-                :style="{ width: textBoxWidth + '%' }"
-              />
-              <a-button
-                @click="addOwnersHotspots"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
-                type="primary"
-                >{{ $device.mobile ? "+" : "Add" }} all HS</a-button
+              <a-row>
+                <a-auto-complete
+                  placeholder="Input owner address"
+                  v-model="inputOwnerAddress"
+                  :data-source="ownerAutocomplete"
+                  :style="{ width: textBoxWidth + '%' }"
+                />
+                <a-button
+                  @click="addOwnersHotspots"
+                  :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                  type="primary"
+                  >{{ $device.mobile ? "+" : "Add" }} all HS</a-button
+                >
+                <a-button
+                  @click="removeOwnersHotspots"
+                  :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
+                  type="danger"
+                  >{{ $device.mobile ? "-" : "Remove" }} all HS</a-button
+                ></a-row
               >
-              <a-button
-                @click="removeOwnersHotspots"
-                :style="{ width: (100 - textBoxWidth) / 2 + '%' }"
-                type="danger"
-                >{{ $device.mobile ? "-" : "Remove" }} all HS</a-button
-              ></a-row
-            >
+              <br />
+              <a-row>
+                <a-checkbox v-model="shouldCache"
+                  >Cache input addresses</a-checkbox
+                >
+                <a-button style="background-color: orange" @click="clearCache"
+                  >Clear cache</a-button
+                >
+              </a-row>
+            </a-row>
           </a-col>
         </a-card>
       </a-col>
@@ -163,7 +174,29 @@ export default {
       inputOwnerAddress: "",
       textBoxWidth: this.$device.mobile ? 40 : 80,
       rewards: [],
+      shouldCache: false,
     };
+  },
+  mounted() {
+    if (localStorage.hotspotAddress) {
+      const local = JSON.parse(localStorage.hotspotAddress);
+      console.log(local);
+      local.forEach((address) => {
+        this.inputHotspotAddress = address;
+        this.addAddress();
+      });
+    } else {
+      localStorage.hotspotAddress = JSON.stringify([]);
+    }
+    if (localStorage.ownerAddress) {
+      const local = JSON.parse(localStorage.ownerAddress);
+      local.forEach((address) => {
+        this.inputOwnerAddress = address;
+        this.addOwnersHotspots();
+      });
+    } else {
+      localStorage.ownerAddress = JSON.stringify([]);
+    }
   },
   computed: {
     mappedHotspots() {
@@ -343,6 +376,13 @@ export default {
           "error"
         );
       } else {
+        if (this.shouldCache) {
+          const local = JSON.parse(localStorage.hotspotAddress);
+          if (!local.includes(this.inputHotspotAddress)) {
+            local.push(this.inputHotspotAddress);
+            localStorage.hotspotAddress = JSON.stringify(local);
+          }
+        }
         this.processHotspot(this.inputHotspotAddress)
           .then(() => {
             this.inputHotspotAddress = "";
@@ -423,6 +463,13 @@ export default {
       return results;
     },
     addOwnersHotspots() {
+      if (this.shouldCache) {
+        const local = JSON.parse(localStorage.ownerAddress);
+        if (!local.includes(this.inputOwnerAddress)) {
+          local.push(this.inputOwnerAddress);
+          localStorage.ownerAddress = JSON.stringify(local);
+        }
+      }
       let isAdded = 0;
       let isIgnored = 0;
       this.getOwnersHotspots()
@@ -544,8 +591,7 @@ export default {
       }
     },
     loadData() {
-      this.loadData = true;
-      this.rewards = [];
+      this.rewards.splice(0);
       this.allDates.forEach((date) => {
         const what = new Array();
         what.push(date.toLocaleDateString());
@@ -560,7 +606,10 @@ export default {
         });
         this.rewards.push(what);
       });
-      this.loadData = false;
+    },
+    clearCache() {
+      localStorage.hotspotAddress = JSON.stringify([]);
+      localStorage.ownerAddress = JSON.stringify([]);
     },
   },
 };

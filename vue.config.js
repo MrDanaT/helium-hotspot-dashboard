@@ -1,5 +1,3 @@
-module.exports = {
-  devServer: {
-    disableHostCheck: true,
-  },
+export const devServer = {
+  disableHostCheck: true,
 };
