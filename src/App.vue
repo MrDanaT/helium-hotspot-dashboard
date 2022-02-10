@@ -215,7 +215,7 @@ export default {
     allDates() {
       const dateArray = new Array();
       let currentDate = this.getStartOfGivenDay(this.datePicked.toDate());
-      while (currentDate < this.currDay) {
+      while (currentDate <= this.currDay) {
         dateArray.push(new Date(currentDate));
         currentDate = currentDate.addDays(1);
       }
