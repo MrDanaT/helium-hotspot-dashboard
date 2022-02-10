@@ -178,24 +178,7 @@ export default {
     };
   },
   mounted() {
-    if (localStorage.hotspotAddress) {
-      const local = JSON.parse(localStorage.hotspotAddress);
-      local.forEach((address) => {
-        this.inputHotspotAddress = address;
-        this.addAddress();
-      });
-    } else {
-      localStorage.hotspotAddress = JSON.stringify([]);
-    }
-    if (localStorage.ownerAddress) {
-      const local = JSON.parse(localStorage.ownerAddress);
-      local.forEach((address) => {
-        this.inputOwnerAddress = address;
-        this.addOwnersHotspots();
-      });
-    } else {
-      localStorage.ownerAddress = JSON.stringify([]);
-    }
+    this.loadDataFromLocalStorage();
   },
   computed: {
     mappedHotspots() {
@@ -294,7 +277,7 @@ export default {
         let res = {
           date: arr[0],
         };
-        if (rest.length > 0) {
+        if (this.isPositive(rest.length)) {
           res = {
             ...res,
             ...rest.reduce(
@@ -329,6 +312,26 @@ export default {
     },
   },
   methods: {
+    loadDataFromLocalStorage() {
+      if (localStorage.hotspotAddress) {
+        const local = JSON.parse(localStorage.hotspotAddress);
+        local.forEach((address) => {
+          this.inputHotspotAddress = address;
+          this.addAddress();
+        });
+      } else {
+        this.clearLocalAddresses();
+      }
+      if (localStorage.ownerAddress) {
+        const local = JSON.parse(localStorage.ownerAddress);
+        local.forEach((address) => {
+          this.inputOwnerAddress = address;
+          this.addOwnersHotspots();
+        });
+      } else {
+        this.clearLocalOwnerAddresses();
+      }
+    },
     convertToComma(txt) {
       return txt.toString().replace(".", ",");
     },
@@ -375,13 +378,7 @@ export default {
           "error"
         );
       } else {
-        if (this.shouldCache) {
-          const local = JSON.parse(localStorage.hotspotAddress);
-          if (!local.includes(this.inputHotspotAddress)) {
-            local.push(this.inputHotspotAddress);
-            localStorage.hotspotAddress = JSON.stringify(local);
-          }
-        }
+        this.addLocalAddress();
         this.processHotspot(this.inputHotspotAddress)
           .then(() => {
             this.inputHotspotAddress = "";
@@ -462,13 +459,7 @@ export default {
       return results;
     },
     addOwnersHotspots() {
-      if (this.shouldCache) {
-        const local = JSON.parse(localStorage.ownerAddress);
-        if (!local.includes(this.inputOwnerAddress)) {
-          local.push(this.inputOwnerAddress);
-          localStorage.ownerAddress = JSON.stringify(local);
-        }
-      }
+      this.addLocalOwnerAddress();
       let isAdded = 0;
       let isIgnored = 0;
       this.getOwnersHotspots()
@@ -484,25 +475,41 @@ export default {
           });
         })
         .then(() => {
-          if (isAdded > 0) {
+          if (this.isPositive(isAdded)) {
             this.openNotification(
               "Succesful",
-              `${isAdded} hotspot${isAdded > 1 ? "s" : ""} ${
-                isAdded > 1 ? "have" : "has"
-              } been added.`,
+              `${isAdded} ${this.pluralize(
+                isAdded,
+                "hotspot"
+              )} ${this.hasPlural(isAdded)} been added.`,
               "success"
             );
           }
-          if (isIgnored > 0) {
+          if (this.isPositive(isIgnored)) {
             this.openNotification(
-              `Cannot add hotspot${isIgnored > 1 ? "s" : ""}`,
-              `${isIgnored} hotspot${isIgnored > 1 ? "s" : ""} ${
-                isIgnored > 1 ? "are" : "is"
-              } already in the list.`,
+              `Cannot add ${this.pluralize(isIgnored, "hotspot")}`,
+              `${isIgnored} ${this.pluralize(
+                isIgnored,
+                "hotspot"
+              )} ${this.isPlural(isIgnored)} already in the list.`,
               "warning"
             );
           }
         });
+    },
+    isPositive(number) {
+      return number > 0;
+    },
+    hasPlural(count) {
+      return count > 1 ? "have" : "has";
+    },
+    isPlural(count) {
+      return count > 1 ? "are" : "is";
+    },
+    pluralize(count, word) {
+      let result = word;
+      if (count > 1) result += "s";
+      return result;
     },
     getStartOfGivenDay(date) {
       var res = new Date(date.getTime());
@@ -550,8 +557,8 @@ export default {
         if (res.status == 200) {
           return res.data;
         }
-      } catch (err) {
-        console.error(err);
+      } catch ($e) {
+        this.openNotification("Cannot get reward.", $e, "error");
       }
     },
     removeAddress(address) {
@@ -559,7 +566,7 @@ export default {
       if (idx === -1) {
         this.openNotification(
           "Cannot remove hotspot",
-          "Hotspot is not in the list.",
+          `${address || "/"} is not in the list.`,
           "error"
         );
       } else {
@@ -577,16 +584,25 @@ export default {
         (hs) => hs.owner !== this.inputOwnerAddress
       );
       const remainingCount = this.hotspotDict.length - rest.length;
-      if (remainingCount > 0) {
+      if (this.isPositive(remainingCount)) {
         this.openNotification(
           "Succesful",
-          `${remainingCount} hotspot${remainingCount > 1 ? "s" : ""} ${
-            remainingCount > 1 ? "have" : "has"
-          } been removed.`,
+          `${remainingCount} ${this.pluralize(
+            remainingCount,
+            "hotspot"
+          )} ${this.hasPlural(remainingCount)} been removed.`,
           "success"
         );
         this.hotspotDict = rest;
         this.inputOwnerAddress = "";
+      } else {
+        this.openNotification(
+          "Cannot remove owner's hotspot(s)",
+          `${
+            this.inputOwnerAddress || "/"
+          }'s hotspots are currently not in the list.`,
+          "error"
+        );
       }
     },
     loadData() {
@@ -607,7 +623,31 @@ export default {
       });
     },
     clearCache() {
+      this.clearLocalAddresses();
+      this.clearLocalOwnerAddresses();
+    },
+    addLocalAddress() {
+      if (this.shouldCache) {
+        const local = JSON.parse(localStorage.hotspotAddress);
+        if (!local.includes(this.inputHotspotAddress)) {
+          local.push(this.inputHotspotAddress);
+          localStorage.hotspotAddress = JSON.stringify(local);
+        }
+      }
+    },
+    clearLocalAddresses() {
       localStorage.hotspotAddress = JSON.stringify([]);
+    },
+    addLocalOwnerAddress() {
+      if (this.shouldCache) {
+        const local = JSON.parse(localStorage.ownerAddress);
+        if (!local.includes(this.inputOwnerAddress)) {
+          local.push(this.inputOwnerAddress);
+          localStorage.ownerAddress = JSON.stringify(local);
+        }
+      }
+    },
+    clearLocalOwnerAddresses() {
       localStorage.ownerAddress = JSON.stringify([]);
     },
   },
