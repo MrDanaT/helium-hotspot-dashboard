@@ -1,14 +1,34 @@
 {
   "name": "helium-hotspot-dashboard",
-  "version": "0.1.0",
+  "author": "https://github.com/MrDanaT",
+  "description": "A Helium (HNT) Hotspot Dashboard for viewing the rewards on a set of hotspots. ",
+  "version": "1.2.0",
+  "main": "main.js",
   "private": true,
+  "build": {
+    "appId": "helium-hotspot-dashboard",
+    "win": {
+      "target": "nsis",
+      "icon": "./src/assets/logo.png"
+    },
+    "files": [
+      "**/*",
+      "dist/**/*"
+    ],
+    "directories": {
+      "buildResources": "dist",
+      "output": "release"
+    }
+  },
   "scripts": {
     "start": "vue-cli-service serve",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "production": "vue-cli-service serve --mode production",
-    "heroku-postbuild": "npm run lint & npm run build"
+    "heroku-postbuild": "npm run lint & npm run build",
+    "electron:dev": "vue-cli-service build && electron .",
+    "electron:build": "vue-cli-service build --mode production && electron-builder build"
   },
   "dependencies": {
     "@vue/cli-service": "~4.5.0",
@@ -32,6 +52,8 @@
     "@vue/cli-service": "~4.5.0",
     "@vue/eslint-config-prettier": "^6.0.0",
     "babel-eslint": "^10.1.0",
+    "electron": "^17.0.0",
+    "electron-builder": "^22.14.13",
     "eslint": "^6.7.2",
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-vue": "^6.2.2",
