@@ -1,4 +1,4 @@
-# Helium Hotspot Dashboard (V1)
+# Helium Hotspot Dashboard
 
 A simple [Helium](https://www.helium.com/) hotspot dashboard made in [Vue](https://vuejs.org/) which allows to see how much [$HNT](https://coinmarketcap.com/currencies/helium/) a given set of hotspots have earned on a daily bases.
 
