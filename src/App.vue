@@ -175,6 +175,7 @@ export default {
       textBoxWidth: this.$device.mobile ? 40 : 80,
       rewards: [],
       shouldCache: false,
+      waitDelayMS: 1250,
     };
   },
   mounted() {
@@ -429,7 +430,8 @@ export default {
         .then(({ data }) => {
           data = data.data;
           this.hotspotDict.push(this.convertAPIHotspotToMyHotspot(data, null));
-        });
+        })
+        .then(await this.wait());
     },
     openNotification(message, description, type) {
       this.$notification[type]({
@@ -607,19 +609,26 @@ export default {
     },
     loadData() {
       this.rewards.splice(0);
-      this.allDates.forEach((date) => {
-        const what = new Array();
-        what.push(date.toLocaleDateString());
-        this.hotspotDict.forEach((hs) => {
-          this.rewardCall(
-            hs.address,
-            this.getStartOfGivenDay(date),
-            this.getEndOfGivenDay(date)
-          ).then(({ data }) => {
-            what.push({ name: hs.name, total: data.total });
+      const outterThis = this;
+      this.allDates.forEach((date, i) => {
+        outterThis.wait(function () {
+          const what = new Array();
+          what.push(date.toLocaleDateString());
+          outterThis.hotspotDict.forEach((hs, j) => {
+            outterThis.wait(function () {
+              outterThis
+                .rewardCall(
+                  hs.address,
+                  outterThis.getStartOfGivenDay(date),
+                  outterThis.getEndOfGivenDay(date)
+                )
+                .then(({ data }) => {
+                  what.push({ name: hs.name, total: data.total });
+                });
+            }, i + j);
           });
-        });
-        this.rewards.push(what);
+          outterThis.rewards.push(what);
+        }, i);
       });
     },
     clearCache() {
@@ -649,6 +658,9 @@ export default {
     },
     clearLocalOwnerAddresses() {
       localStorage.ownerAddress = JSON.stringify([]);
+    },
+    wait(task, idx) {
+      setTimeout(task, this.waitDelayMS * idx);
     },
   },
 };
