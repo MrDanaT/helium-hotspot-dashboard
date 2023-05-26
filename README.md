@@ -20,20 +20,6 @@ The second version of the dashboard has a few more functionalities so far: inclu
 
 ![Example V2.3](./assets/V2_Example3.png)
 
-## V1
-
-This first version of the dashboard serves as a mere experiment on my experience with the [Helium API](https://docs.helium.com/api/) and what data it exposes to its users.
-
-### Example V1.1
-
-![Example v1.1](./assets/V1_Example1.png)
-_The first component gives an overal overview of each hotspot you've individually added or through a wallets address_
-
-### Example V1.2
-
-![Example V1.2](./assets/V1_Example2.png)
-_The second component gives an overview of all daily earnings of all hotspots starting on the users input startdate and ending on the current date._
-
 ### Project setup
 
 For this project you need [npmjs](https://www.npmjs.com/) to install all packages with `npm i` and [serve](https://www.npmjs.com/package/serve) with `npm i serve -g`.
